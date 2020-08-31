@@ -295,6 +295,23 @@ static const char *websocket_cli_process(struct websocket_message *wm) {
 }
 
 
+static const char *websocket_ng_process(struct websocket_message *wm) {
+	ilog(LOG_DEBUG, "Processing websocket NG req '%s'", wm->body->str);
+
+	str uri_cmd;
+	str_init_len(&uri_cmd, wm->body->str, wm->body->len);
+
+	struct cli_writer cw = {
+		.cw_printf = websocket_queue_printf,
+		.ptr = wm->wc,
+	};
+	cli_handle(&uri_cmd, &cw);
+
+	websocket_write_binary(wm->wc, NULL, 0);
+	return NULL;
+}
+
+
 static int websocket_http_get(struct websocket_conn *wc) {
 	struct websocket_message *wm = wc->wm;
 	const char *uri = wm->uri;
@@ -583,6 +600,11 @@ static int websocket_rtpengine_cli(struct lws *wsi, enum lws_callback_reasons re
 {
 	return websocket_protocol(wsi, reason, user, in, len, websocket_cli_process, "rtpengine-cli");
 }
+static int websocket_rtpengine_ng(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in,
+		size_t len)
+{
+	return websocket_protocol(wsi, reason, user, in, len, websocket_ng_process, "rtpengine-ng");
+}
 
 
 static const struct lws_protocols websocket_protocols[] = {
@@ -599,6 +621,11 @@ static const struct lws_protocols websocket_protocols[] = {
 	{
 		.name = "cli.rtpengine.com",
 		.callback = websocket_rtpengine_cli,
+		.per_session_data_size = sizeof(struct websocket_conn),
+	},
+	{
+		.name = "ng.rtpengine.com",
+		.callback = websocket_rtpengine_ng,
 		.per_session_data_size = sizeof(struct websocket_conn),
 	},
 	{ 0, }
