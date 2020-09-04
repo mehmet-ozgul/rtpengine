@@ -1999,6 +1999,10 @@ static int packetizer_amr(AVPacket *pkt, GString *buf, str *output, encoder_t *e
 
 	s[0] = '\xf0'; // no CMR req (4 bits)
 
+	// temp hack for testing
+	if ((random() & 0x1ff) == 0)
+		s[0] = '\x00';
+
 	// or do we have a CMR?
 	if (!enc->u.avc.u.amr.cmr_out_seq) {
 		if (memcmp(&enc->u.avc.u.amr.cmr_out_ts, &enc->codec_options.amr.cmr.cmr_out_ts,
