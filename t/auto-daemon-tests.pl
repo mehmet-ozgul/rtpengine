@@ -1045,9 +1045,6 @@ rcv($sock_a, $port_b, rtpm(96, 1004, 4200, $ssrc, "\xf0\x14\x41\x00\x30\x44\x41\
 
 
 
-done_testing;
-exit;
-
 
 # stray answer protocol changes
 
