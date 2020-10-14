@@ -1995,7 +1995,7 @@ a=rtpmap:0 PCMU/8000
 a=sendrecv
 a=rtcp:PORT
 a=setup:active
-a=fingerprint:sha-1 FINGERPRINT
+a=fingerprint:sha-256 FINGERPRINT256
 SDP
 
 
@@ -2048,7 +2048,7 @@ a=rtpmap:0 PCMU/8000
 a=sendrecv
 a=rtcp:PORT
 a=setup:passive
-a=fingerprint:sha-1 FINGERPRINT
+a=fingerprint:sha-256 FINGERPRINT256
 SDP
 
 
