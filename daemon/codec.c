@@ -1288,7 +1288,7 @@ static int __handler_func_sequencer(struct media_packet *mp, struct transcode_pa
 		atomic64_set(&ssrc_in->packets_lost, ssrc_in_p->sequencer.lost_count);
 		atomic64_set(&ssrc_in->last_seq, ssrc_in_p->sequencer.ext_seq);
 
-		ilog(LOG_INFO, "Decoding RTP packet: seq %u, TS %lu",
+		ilog(LOG_DEBUG, "Decoding RTP packet: seq %u, TS %lu",
 				packet->p.seq, packet->ts);
 
 		if (seq_ret == 1) {
@@ -1371,7 +1371,7 @@ static void __output_rtp(struct media_packet *mp, struct codec_ssrc_handler *ch,
 		p->ttq_entry.when = ch->first_send = rtpe_now;
 		ch->first_send_ts = ts;
 	}
-	ilog(LOG_INFO, "Scheduling to send RTP packet (seq %u TS %lu) at %lu.%06lu",
+	ilog(LOG_DEBUG, "Scheduling to send RTP packet (seq %u TS %lu) at %lu.%06lu",
 			ntohs(rh->seq_num),
 			ts,
 			(long unsigned) p->ttq_entry.when.tv_sec,
@@ -1818,7 +1818,7 @@ static int packet_encoded_rtp(encoder_t *enc, void *u1, void *u2) {
 	struct media_packet *mp = u2;
 	//unsigned int seq_off = (mp->iter_out > mp->iter_in) ? 1 : 0;
 
-	ilog(LOG_INFO, "RTP media successfully encoded: TS %llu, len %i",
+	ilog(LOG_DEBUG, "RTP media successfully encoded: TS %llu, len %i",
 			(unsigned long long) enc->avpkt.pts, enc->avpkt.size);
 
 	// run this through our packetizer
@@ -1837,7 +1837,7 @@ static int packet_encoded_rtp(encoder_t *enc, void *u1, void *u2) {
 		str_init_len(&inout, payload, payload_len);
 		// and request a packet
 		if (in_pkt)
-			ilog(LOG_INFO, "Adding %i bytes to packetizer", in_pkt->size);
+			ilog(LOG_DEBUG, "Adding %i bytes to packetizer", in_pkt->size);
 		int ret = ch->handler->dest_pt.codec_def->packetizer(in_pkt,
 				ch->sample_buffer, &inout, enc);
 
@@ -1847,7 +1847,7 @@ static int packet_encoded_rtp(encoder_t *enc, void *u1, void *u2) {
 			break;
 		}
 
-		ilog(LOG_INFO, "Received packet of %i bytes from packetizer", inout.len);
+		ilog(LOG_DEBUG, "Received packet of %i bytes from packetizer", inout.len);
 
 		unsigned int repeats = 0;
 		int is_dtmf = dtmf_event_payload(&inout, (uint64_t *) &enc->avpkt.pts, enc->avpkt.duration,
@@ -1935,7 +1935,7 @@ static int packet_decoded_common(decoder_t *decoder, AVFrame *frame, void *u1, v
 	struct codec_ssrc_handler *ch = u1;
 	struct media_packet *mp = u2;
 
-	ilog(LOG_INFO, "RTP media successfully decoded: TS %llu, samples %u",
+	ilog(LOG_DEBUG, "RTP media successfully decoded: TS %llu, samples %u",
 			(unsigned long long) frame->pts, frame->nb_samples);
 
 	// switch from input codec context to output context if necessary
@@ -2010,9 +2010,9 @@ static int handler_func_transcode(struct codec_handler *h, struct media_packet *
 
 	// create new packet and insert it into sequencer queue
 
-	ilog(LOG_INFO, "Received RTP packet: SSRC %" PRIx32 ", PT %u, seq %u, TS %u, len %i",
+	ilog(LOG_INFO, "Received RTP packet: SSRC %" PRIx32 ", PT %u, seq %u, TS %u, len %i %s:%d",
 			ntohl(mp->rtp->ssrc), mp->rtp->m_pt, ntohs(mp->rtp->seq_num),
-			ntohl(mp->rtp->timestamp), mp->payload.len);
+			ntohl(mp->rtp->timestamp), mp->payload.len, sockaddr_print_buf(&mp.stream->endpoint.address), mp.stream->endpoint.port);
 
 	if (h->stats_entry) {
 		unsigned int idx = rtpe_now.tv_sec & 1;
