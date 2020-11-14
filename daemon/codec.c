@@ -2012,7 +2012,7 @@ static int handler_func_transcode(struct codec_handler *h, struct media_packet *
 
 	ilog(LOG_INFO, "Received RTP packet: SSRC %" PRIx32 ", PT %u, seq %u, TS %u, len %i %s:%d",
 			ntohl(mp->rtp->ssrc), mp->rtp->m_pt, ntohs(mp->rtp->seq_num),
-			ntohl(mp->rtp->timestamp), mp->payload.len, sockaddr_print_buf(&mp.stream->endpoint.address), mp.stream->endpoint.port);
+			ntohl(mp->rtp->timestamp), mp->payload.len, sockaddr_print_buf(&mp->stream->endpoint.address), mp->stream->endpoint.port);
 
 	if (h->stats_entry) {
 		unsigned int idx = rtpe_now.tv_sec & 1;
