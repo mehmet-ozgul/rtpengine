@@ -153,7 +153,25 @@ static void control_ng_incoming(struct obj *obj, str *buf, const endpoint_t *sin
 
 	to_send = cookie_cache_lookup(&c->cookie_cache, &cookie);
 	if (to_send) {
-		ilog(LOG_INFO, "Detected command from %s as a duplicate", addr);
+		char _szId[256];
+		memset(_szId, 0, sizeof(_szId));
+		for(int _i = 0; _i < cookie.len && strlen(_szId) < sizeof(_szId); _i++) {
+			if (cookie.s[_i] >= 32) {
+				_szId[_i] = cookie.s[_i];
+			} else {
+				_szId[_i] = '.';
+			}
+		}
+		bencode_item_t *d = bencode_decode_expect_str(&bencbuf, &data, BENCODE_DICTIONARY);
+		if (d) {
+			str _cmd, _cid;
+			bencode_dictionary_get_str(d, "command", &_cmd);
+			bencode_dictionary_get_str(d, "call-id", &_cid);
+			ilog(LOG_INFO, "Detected command from %s as a duplicate. ID: [%s] Call-ID: [%s] Cmd: [%s]", addr, _szId,
+				_cid.s ? _cid.s : "null", _cmd.s ? _cmd.s : "null");
+		} else {
+			ilog(LOG_INFO, "Detected command from %s as a duplicate. ID: [%s]", addr, _szId);
+		}
 		resp = NULL;
 		goto send_only;
 	}
@@ -173,13 +191,13 @@ static void control_ng_incoming(struct obj *obj, str *buf, const endpoint_t *sin
 
 	ilog(LOG_INFO, "Received command '"STR_FORMAT"' from %s", STR_FMT(&cmd), addr);
 
-	if (get_log_level() >= LOG_DEBUG) {
+	if (get_log_level() >= LOG_INFO) {
 		log_str = g_string_sized_new(256);
 		g_string_append_printf(log_str, "Dump for '"STR_FORMAT"' from %s: %s", STR_FMT(&cmd), addr,
 				rtpe_config.common.log_mark_prefix);
 		pretty_print(dict, log_str);
 		g_string_append(log_str, rtpe_config.common.log_mark_suffix);
-		ilog(LOG_DEBUG, "%.*s", (int) log_str->len, log_str->str);
+		ilog(LOG_INFO, "%.*s", (int) log_str->len, log_str->str);
 		g_string_free(log_str, TRUE);
 	}
 

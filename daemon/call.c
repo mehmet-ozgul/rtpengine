@@ -2032,7 +2032,7 @@ int monologue_offer_answer(struct call_monologue *other_ml, GQueue *streams,
 
 	for (media_iter = streams->head; media_iter; media_iter = media_iter->next) {
 		sp = media_iter->data;
-		__C_DBG("processing media stream #%u", sp->index);
+		__C_DBG("processing media stream #%u (" STR_FORMAT ")", sp->index, sp->format_str);
 
 		/* first, check for existence of call_media struct on both sides of
 		 * the dialogue */

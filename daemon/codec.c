@@ -49,7 +49,7 @@ static GList *__delete_receiver_codec(struct call_media *receiver, GList *link) 
 	return __delete_x_codec(link, receiver->codecs_recv, receiver->codec_names_recv,
 			&receiver->codecs_prefs_recv);
 }
-
+#define WITH_TRANSCODING 1
 #ifdef WITH_TRANSCODING
 
 
@@ -2320,11 +2320,11 @@ void codec_rtp_payload_types(struct call_media *media, struct call_media *other_
 
 		// codec stripping
 		if (flags->codec_strip) {
-			if (strip_all || g_hash_table_lookup(flags->codec_strip, &pt->encoding)
+			if (strip_all
+					|| g_hash_table_lookup(flags->codec_strip, &pt->encoding)
 					|| g_hash_table_lookup(flags->codec_strip, &pt->encoding_with_params))
 			{
-				ilog(LOG_DEBUG, "Stripping codec '" STR_FORMAT "'",
-						STR_FMT(&pt->encoding_with_params));
+				ilog(LOG_INFO, "Stripping codec '" STR_FORMAT "'", STR_FMT(&pt->encoding_with_params));
 				GQueue *q = g_hash_table_lookup_queue_new(removed, &pt->encoding);
 				g_queue_push_tail(q, __rtp_payload_type_copy(pt));
 				q = g_hash_table_lookup_queue_new(removed, &pt->encoding_with_params);
@@ -2333,7 +2333,8 @@ void codec_rtp_payload_types(struct call_media *media, struct call_media *other_
 			}
 		}
 		__codec_options_set(pt, flags->codec_set);
-		if (!mask_all && (!flags->codec_mask || !g_hash_table_lookup(flags->codec_mask, &pt->encoding))
+		if (!mask_all
+				&& (!flags->codec_mask || !g_hash_table_lookup(flags->codec_mask, &pt->encoding))
 				&& (!flags->codec_mask || !g_hash_table_lookup(flags->codec_mask, &pt->encoding_with_params)))
 			__rtp_payload_type_add(media, other_media, pt);
 		else
@@ -2355,7 +2356,7 @@ void codec_rtp_payload_types(struct call_media *media, struct call_media *other_
 				l = l->next;
 				continue;
 			}
-			ilog(LOG_DEBUG, "Eliminating asymmetric inbound codec " STR_FORMAT,
+			ilog(LOG_INFO, "Eliminating asymmetric inbound codec " STR_FORMAT,
 					STR_FMT(&pt->encoding_with_params));
 			l = __delete_receiver_codec(other_media, l);
 		}
@@ -2369,25 +2370,26 @@ void codec_rtp_payload_types(struct call_media *media, struct call_media *other_
 		// and removed by a strip=all option,
 		// simply restore it from the original list and handle it the same way
 		// as 'offer'
-		if (strip_all && __revert_codec_strip(removed, codec, media, other_media))
+		if (strip_all && __revert_codec_strip(removed, codec, media, other_media)) {
 			continue;
+		}
 		// also check if maybe the codec was never stripped
 		if (g_hash_table_lookup(media->codec_names_recv, codec)) {
-			ilog(LOG_DEBUG, "Codec '" STR_FORMAT "' requested for transcoding is already present",
-					STR_FMT(codec));
+			ilog(LOG_INFO, "Codec '" STR_FORMAT "' requested for transcoding is already present", STR_FMT(codec));
 			continue;
 		}
 
 		// create new payload type
 		pt = codec_add_payload_type(codec, media);
-		if (!pt)
+		if (!pt) {
 			continue;
+		}
 
-		if (__codec_synth_transcode_options(pt, flags, media))
+		if (__codec_synth_transcode_options(pt, flags, media)) {
 			continue;
+		}
 
-		ilog(LOG_DEBUG, "Codec '" STR_FORMAT "' added for transcoding with payload type %u",
-				STR_FMT(&pt->encoding_with_params), pt->payload_type);
+		ilog(LOG_INFO, "Codec '" STR_FORMAT "' added for transcoding with payload type %u", STR_FMT(&pt->encoding_with_params), pt->payload_type);
 		__rtp_payload_type_add_recv(media, pt);
 	}
 
@@ -2419,7 +2421,7 @@ void codec_rtp_payload_types(struct call_media *media, struct call_media *other_
 				assert(pt != NULL);
 				__rtp_payload_type_add_recv(media, pt);
 
-				ilog(LOG_DEBUG, "Using default codecs PCMU and PCMA for T.38 gateway");
+				ilog(LOG_INFO, "Using default codecs PCMU and PCMA for T.38 gateway");
 			}
 		}
 		else if (flags->opmode == OP_OFFER) {
@@ -2434,8 +2436,7 @@ void codec_rtp_payload_types(struct call_media *media, struct call_media *other_
 					l = l->next;
 					continue;
 				}
-				ilog(LOG_DEBUG, "Eliminating unsupported codec " STR_FORMAT,
-						STR_FMT(&pt->encoding_with_params));
+				ilog(LOG_INFO, "Eliminating unsupported codec " STR_FORMAT, STR_FMT(&pt->encoding_with_params));
 				l = __delete_receiver_codec(media, l);
 			}
 		}
