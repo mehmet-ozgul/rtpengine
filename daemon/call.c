@@ -48,6 +48,7 @@
 #include "jitter_buffer.h"
 #include "t38.h"
 
+#define __F_DBG(x...) ilog(LOG_DEBUG, x)
 
 struct iterator_helper {
 	GSList			*del_timeout;
@@ -774,13 +775,13 @@ static struct call_media *__get_media(struct call_monologue *ml, GList **it, con
 	while (*it) {
 		med = (*it)->data;
 		if (med->index == sp->index) {
-			__C_DBG("found existing call_media for stream #%u", sp->index);
+			__F_DBG("found existing call_media for stream #%u", sp->index);
 			return med;
 		}
 		*it = (*it)->next;
 	}
 
-	__C_DBG("allocating new call_media for stream #%u", sp->index);
+	__F_DBG("allocating new call_media for stream #%u", sp->index);
 	call = ml->call;
 	med = call_media_new(call);
 	med->monologue = ml;
@@ -810,7 +811,7 @@ static struct endpoint_map *__get_endpoint_map(struct call_media *media, unsigne
 		if (em->logical_intf != media->logical_intf)
 			continue;
 		if (em->wildcard && em->num_ports >= num_ports) {
-			__C_DBG("found a wildcard endpoint map%s", ep ? " and filling it in" : "");
+			__F_DBG("found a wildcard endpoint map%s", ep ? " and filling it in" : "");
 			if (ep) {
 				em->endpoint = *ep;
 				em->wildcard = 0;
@@ -837,12 +838,12 @@ static struct endpoint_map *__get_endpoint_map(struct call_media *media, unsigne
 		}
 		/* endpoint matches, but not enough ports. flush existing ports
 		 * and allocate a new set. */
-		__C_DBG("endpoint matches, doesn't have enough ports");
+		__F_DBG("endpoint matches, doesn't have enough ports");
 		g_queue_clear_full(&em->intf_sfds, (void *) free_intf_list);
 		goto alloc;
 	}
 
-	__C_DBG("allocating new %sendpoint map", ep ? "" : "wildcard ");
+	__F_DBG("allocating new %sendpoint map", ep ? "" : "wildcard ");
 	em = uid_slice_alloc0(em, &media->call->endpoint_maps);
 	if (ep)
 		em->endpoint = *ep;
@@ -859,7 +860,7 @@ alloc:
 	if (get_consecutive_ports(&intf_sockets, num_ports, media->logical_intf, &media->call->callid))
 		return NULL;
 
-	__C_DBG("allocating stream_fds for %u ports", num_ports);
+	__F_DBG("allocating stream_fds for %u ports", num_ports);
 
 	while ((il = g_queue_pop_head(&intf_sockets))) {
 		if (il->list.length != num_ports)
@@ -964,7 +965,7 @@ static int __num_media_streams(struct call_media *media, unsigned int num_ports)
 	struct call *call = media->call;
 	int ret = 0;
 
-	__C_DBG("allocating %i new packet_streams", num_ports - media->streams.length);
+	__F_DBG("allocating %i new packet_streams", num_ports - media->streams.length);
 	while (media->streams.length < num_ports) {
 		stream = __packet_stream_new(call);
 		stream->media = media;
@@ -2019,7 +2020,7 @@ int monologue_offer_answer(struct call_monologue *other_ml, GQueue *streams,
 	call->last_signal = rtpe_now.tv_sec;
 	call->deleted = 0;
 
-	__C_DBG("this="STR_FORMAT" other="STR_FORMAT, STR_FMT(&monologue->tag), STR_FMT(&other_ml->tag));
+	__F_DBG("this="STR_FORMAT" other="STR_FORMAT, STR_FMT(&monologue->tag), STR_FMT(&other_ml->tag));
 
 	__tos_change(call, flags);
 
@@ -2032,7 +2033,7 @@ int monologue_offer_answer(struct call_monologue *other_ml, GQueue *streams,
 
 	for (media_iter = streams->head; media_iter; media_iter = media_iter->next) {
 		sp = media_iter->data;
-		__C_DBG("processing media stream #%u (" STR_FORMAT ")", sp->index, sp->format_str);
+		__F_DBG("processing media stream #%u (" STR_FORMAT ")", sp->index, sp->format_str);
 
 		/* first, check for existence of call_media struct on both sides of
 		 * the dialogue */
@@ -2684,7 +2685,7 @@ struct call *call_get_opmode(const str *callid, enum call_opmode opmode) {
 struct call_monologue *__monologue_create(struct call *call) {
 	struct call_monologue *ret;
 
-	__C_DBG("creating new monologue");
+	__F_DBG("creating new monologue");
 	ret = uid_slice_alloc0(ret, &call->monologues);
 
 	ret->call = call;
@@ -2703,7 +2704,7 @@ struct call_monologue *__monologue_create(struct call *call) {
 void __monologue_tag(struct call_monologue *ml, const str *tag) {
 	struct call *call = ml->call;
 
-	__C_DBG("tagging monologue with '"STR_FORMAT"'", STR_FMT(tag));
+	__F_DBG("tagging monologue with '"STR_FORMAT"'", STR_FMT(tag));
 	if (ml->tag.s)
 		g_hash_table_remove(call->tags, &ml->tag);
 	call_str_cpy(call, &ml->tag, tag);
@@ -2716,7 +2717,7 @@ void __monologue_viabranch(struct call_monologue *ml, const str *viabranch) {
 	if (!viabranch || !viabranch->len)
 		return;
 
-	__C_DBG("tagging monologue with viabranch '"STR_FORMAT"'", STR_FMT(viabranch));
+	__F_DBG("tagging monologue with viabranch '"STR_FORMAT"'", STR_FMT(viabranch));
 	if (ml->viabranch.s) {
 		g_hash_table_remove(call->viabranches, &ml->viabranch);
 		if (other)
@@ -2855,7 +2856,7 @@ static struct call_monologue *call_get_monologue(struct call *call, const str *f
 {
 	struct call_monologue *ret, *os;
 
-	__C_DBG("getting monologue for tag '"STR_FORMAT"' in call '"STR_FORMAT"'",
+	__F_DBG("getting monologue for tag '"STR_FORMAT"' in call '"STR_FORMAT"'",
 			STR_FMT(fromtag), STR_FMT(&call->callid));
 	ret = g_hash_table_lookup(call->tags, fromtag);
 	if (!ret) {
@@ -2864,7 +2865,7 @@ static struct call_monologue *call_get_monologue(struct call *call, const str *f
 		goto new_branch;
 	}
 
-	__C_DBG("found existing monologue");
+	__F_DBG("found existing monologue");
 	__monologue_unkernelize(ret);
 	__monologue_unkernelize(ret->active_dialogue);
 
@@ -2893,7 +2894,7 @@ static struct call_monologue *call_get_monologue(struct call *call, const str *f
 	/* we need both sides of the dialogue even in the initial offer, so create
 	 * another monologue without to-tag (to be filled in later) */
 new_branch:
-	__C_DBG("create new \"other side\" monologue for viabranch "STR_FORMAT, STR_FMT0(viabranch));
+	__F_DBG("create new \"other side\" monologue for viabranch "STR_FORMAT, STR_FMT0(viabranch));
 	os = __monologue_create(call);
 	ret->active_dialogue = os;
 	os->active_dialogue = ret;
@@ -2914,7 +2915,7 @@ static struct call_monologue *call_get_dialogue(struct call *call, const str *fr
 {
 	struct call_monologue *ft, *tt;
 
-	__C_DBG("getting dialogue for tags '"STR_FORMAT"'<>'"STR_FORMAT"' in call '"STR_FORMAT"'",
+	__F_DBG("getting dialogue for tags '"STR_FORMAT"'<>'"STR_FORMAT"' in call '"STR_FORMAT"'",
 			STR_FMT(fromtag), STR_FMT(totag), STR_FMT(&call->callid));
 
 	/* we start with the to-tag. if it's not known, we treat it as a branched offer */
@@ -2925,7 +2926,7 @@ static struct call_monologue *call_get_dialogue(struct call *call, const str *fr
 	/* if the from-tag is known already, return that */
 	ft = g_hash_table_lookup(call->tags, fromtag);
 	if (ft) {
-		__C_DBG("found existing dialogue");
+		__F_DBG("found existing dialogue");
 
 		/* make sure that the dialogue is actually intact */
 		/* fastpath for a common case */
